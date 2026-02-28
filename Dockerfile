@@ -2,24 +2,31 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install XFCE, xrdp, and tools
+# Install XFCE, xrdp, and necessary tools
 RUN apt-get update && apt-get install -y \
     xfce4 xfce4-goodies \
     xrdp \
     dbus-x11 x11-xserver-utils \
-    curl wget sudo \
+    sudo curl wget \
     && apt-get clean
 
-# Configure xrdp to use XFCE
-RUN echo "xfce4-session" > /etc/skel/.xsession
+# 1. Create a non-root user for the Desktop (GUI apps crash if run as root)
+# Username: craxid | Password: craxid
+RUN useradd -m -s /bin/bash craxid && \
+    echo "craxid:craxid" | chpasswd && \
+    usermod -aG sudo craxid
 
-# FIX: Manually create the Xwrapper config in the correct directory
+# 2. Allow anybody to start the X server
 RUN mkdir -p /etc/X11 && echo "allowed_users=anybody" > /etc/X11/Xwrapper.config
 
-# Set Root password for RDP login
-RUN echo "root:craxid" | chpasswd
+# 3. FIX: Tell XRDP exactly how to start XFCE with D-Bus enabled
+RUN echo '#!/bin/sh\n\
+export XDG_SESSION_DESKTOP=xfce\n\
+export XDG_CURRENT_DESKTOP=XFCE\n\
+exec dbus-launch --exit-with-session startxfce4' > /etc/xrdp/startwm.sh && \
+    chmod +x /etc/xrdp/startwm.sh
 
-# Create startup script (Now including dbus-daemon for better XFCE stability)
+# 4. Create startup script
 RUN echo '#!/bin/bash\n\
 rm -rf /var/run/xrdp/*\n\
 mkdir -p /var/run/dbus\n\
@@ -27,7 +34,7 @@ dbus-daemon --system\n\
 /usr/sbin/xrdp-sesman\n\
 /usr/sbin/xrdp -n\n' > /start.sh && chmod +x /start.sh
 
-# RDP default port
+# Expose the RDP port
 EXPOSE 3389
 
 CMD ["/bin/bash", "/start.sh"]
