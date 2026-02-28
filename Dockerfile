@@ -29,8 +29,9 @@ RUN apt-get update && apt-get install -y \
 RUN sed -i 's/Exec=\/usr\/bin\/google-chrome-stable %U/Exec=\/usr\/bin\/google-chrome-stable --no-sandbox --disable-dev-shm-usage %U/g' /usr/share/applications/google-chrome.desktop || true && \
     sed -i 's/Exec=\/usr\/bin\/brave-browser-stable %U/Exec=\/usr\/bin\/brave-browser-stable --no-sandbox --disable-dev-shm-usage %U/g' /usr/share/applications/brave-browser.desktop || true
 
-# 6. Generate locales and force the lightweight terminal as default
+# 6. FIX: Generate locales, register the terminal, then force it as default
 RUN locale-gen en_US.UTF-8 && \
+    update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/xfce4-terminal 50 && \
     update-alternatives --set x-terminal-emulator /usr/bin/xfce4-terminal
 
 # 7. FIX: Generate a Machine ID (Prevents random D-Bus and file manager errors)
