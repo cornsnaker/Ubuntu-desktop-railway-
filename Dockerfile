@@ -1,25 +1,33 @@
 FROM ubuntu:22.04
 
-# Prevent interactive prompts during install
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install XFCE, VNC server, and noVNC
+# Install Desktop, VNC, SSH and Docker tools
 RUN apt-get update && apt-get install -y \
     xfce4 xfce4-goodies \
     tightvncserver \
-    novnc websockify \
-    curl \
-    python3 \
+    openssh-server \
+    curl wget vim docker.io \
     && apt-get clean
 
-# Set up the VNC password (change 'railway' to something else)
-RUN mkdir -p ~/.vnc && \
-    echo "railway" | vncpasswd -f > ~/.vnc/passwd && \
-    chmod 600 ~/.vnc/passwd
+# Setup SSH and VNC directories
+RUN mkdir -p /run/sshd ~/.vnc
 
-# Expose the port Railway will use
-EXPOSE 8080
+# Set VNC & Root Password (Default: craxid)
+# VNC passwords must be truncated to 8 chars by the system
+RUN echo "craxid" | vncpasswd -f > ~/.vnc/passwd && \
+    chmod 600 ~/.vnc/passwd && \
+    echo "root:craxid" | chpasswd && \
+    echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 
-# Start script to launch VNC and noVNC
-CMD vncserver :1 -geometry 1280x720 -depth 24 && \
-    websockify --web /usr/share/novnc/ 8080 localhost:5901
+# Create a startup script for the GUI
+RUN echo '#!/bin/bash' > /start.sh && \
+    echo '/usr/sbin/sshd' >> /start.sh && \
+    echo 'vncserver :1 -geometry 1280x720 -depth 24' >> /start.sh && \
+    echo 'tail -f ~/.vnc/*.log' >> /start.sh && \
+    chmod +x /start.sh
+
+# Expose SSH (22) and VNC (5901)
+EXPOSE 22 5901
+
+CMD ["/bin/bash", "/start.sh"]
