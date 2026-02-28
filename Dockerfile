@@ -2,31 +2,31 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install XFCE, xrdp, and necessary tools
+# Install XFCE, xrdp, tools, AND Epiphany Web Browser
 RUN apt-get update && apt-get install -y \
     xfce4 xfce4-goodies \
     xrdp \
     dbus-x11 x11-xserver-utils \
     sudo curl wget \
+    epiphany-browser \
     && apt-get clean
 
-# 1. Create a non-root user for the Desktop (GUI apps crash if run as root)
-# Username: craxid | Password: craxid
+# Create a non-root user (GUI apps crash if run as root)
 RUN useradd -m -s /bin/bash craxid && \
     echo "craxid:craxid" | chpasswd && \
     usermod -aG sudo craxid
 
-# 2. Allow anybody to start the X server
+# Allow anybody to start the X server
 RUN mkdir -p /etc/X11 && echo "allowed_users=anybody" > /etc/X11/Xwrapper.config
 
-# 3. FIX: Tell XRDP exactly how to start XFCE with D-Bus enabled
+# Tell XRDP exactly how to start XFCE with D-Bus enabled
 RUN echo '#!/bin/sh\n\
 export XDG_SESSION_DESKTOP=xfce\n\
 export XDG_CURRENT_DESKTOP=XFCE\n\
 exec dbus-launch --exit-with-session startxfce4' > /etc/xrdp/startwm.sh && \
     chmod +x /etc/xrdp/startwm.sh
 
-# 4. Create startup script
+# Create startup script
 RUN echo '#!/bin/bash\n\
 rm -rf /var/run/xrdp/*\n\
 mkdir -p /var/run/dbus\n\
