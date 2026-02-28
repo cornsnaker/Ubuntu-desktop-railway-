@@ -12,14 +12,18 @@ RUN apt-get update && apt-get install -y \
 
 # Configure xrdp to use XFCE
 RUN echo "xfce4-session" > /etc/skel/.xsession
-RUN sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/xrdp/Xwrapper.config
+
+# FIX: Manually create the Xwrapper config in the correct directory
+RUN mkdir -p /etc/X11 && echo "allowed_users=anybody" > /etc/X11/Xwrapper.config
 
 # Set Root password for RDP login
 RUN echo "root:craxid" | chpasswd
 
-# Create startup script
+# Create startup script (Now including dbus-daemon for better XFCE stability)
 RUN echo '#!/bin/bash\n\
 rm -rf /var/run/xrdp/*\n\
+mkdir -p /var/run/dbus\n\
+dbus-daemon --system\n\
 /usr/sbin/xrdp-sesman\n\
 /usr/sbin/xrdp -n\n' > /start.sh && chmod +x /start.sh
 
