@@ -1,0 +1,20 @@
+version: "3"
+services:
+  windows:
+    image: dockur/windows
+    container_name: windows
+    ports:
+      - 3389:3389  # RDP Port
+      - 8006:8006  # Web-based Viewer (VNC)
+    environment:
+      # Options: 11, 10, win7, or a custom ISO URL
+      VERSION: "11" 
+      # Set resources to match your Railway plan
+      RAM_SIZE: "32G" 
+      CPU_CORES: "16"
+      DISK_SIZE: "256G"
+    devices:
+      - /dev/kvm
+    cap_add:
+      - NET_ADMIN
+    restart: on-failure
